@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Patate Bounce Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a 9:16 capture stage on the left, a control rack on the right; stacks to one column on phones. */
+:root{
+  --void:#07070c;
+  --panel:#111119;
+  --panel-2:#171722;
+  --line:#272734;
+  --ink:#f2f2f7;
+  --ink-dim:#9a9aae;
+  --accent:#ffcf4d;
+  --accent-2:#ff4d7d;
+  --ok:#4ddba0;
+  --display:'Archivo Black','Arial Black',system-ui,sans-serif;
+  --ui:'Inter',system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(900px 600px at 12% -10%, #1b1430 0%, transparent 60%),
+    radial-gradient(700px 500px at 100% 110%, #10212b 0%, transparent 60%),
+    var(--void);
+  color:var(--ink);
+  font-family:var(--ui);
+  margin:0;
+}
+.wrap{
+  max-width:1220px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:22px 40px;
+}
+header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-family:var(--display);font-size:clamp(22px,4vw,34px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:0;color:var(--ink-dim);font-size:13.5px;max-width:52ch;min-width:0}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.stage{
+  background:#15152e;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.55);
+}
+canvas{display:block;width:100%;height:auto;max-width:100%;touch-action:none}
+.stagebar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+.rack{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.card h2{
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);
+  margin:0 0 11px;font-weight:600;
+}
+.row{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}
+.row:last-child{margin-bottom:0}
+.row label{font-size:12.5px;color:var(--ink-dim);display:flex;justify-content:space-between;gap:8px}
+.row label b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=text],select{
+  width:100%;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+  border-radius:9px;padding:9px 10px;font:inherit;font-size:13px;
+}
+input[type=file]{font-size:12px;color:var(--ink-dim);width:100%}
+input[type=file]::file-selector-button{
+  background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+  border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;margin-right:9px;cursor:pointer;
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+button{
+  background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:10px;
+  padding:9px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+}
+button:hover{border-color:#3b3b4d}
+button.primary{background:var(--accent);color:#1a1405;border-color:transparent}
+button.rec{background:var(--accent-2);color:#2a0511;border-color:transparent}
+.toggles{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:999px;padding:7px 11px;font-size:12.5px;cursor:pointer;user-select:none;color:var(--ink-dim);
+}
+.chip input{accent-color:var(--accent);margin:0}
+.chip.on{color:var(--ink);border-color:#4a4a60;background:#1e1e2b}
+
+/* per-patate asset slots */
+.slots{display:flex;flex-direction:column;gap:7px}
+.slot{
+  display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:10px;align-items:center;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:7px 9px;
+}
+.slot .pv{
+  width:38px;height:38px;border-radius:9px;background:#0e0e18;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
+}
+.slot .pv img{width:100%;height:100%;object-fit:contain;display:block}
+.slot .pv b{
+  position:absolute;left:2px;top:1px;font-family:var(--display);font-size:9px;color:#fff;
+  text-shadow:0 0 3px #000;
+}
+.slot .meta{min-width:0;display:flex;flex-direction:column;gap:2px}
+.slot .meta span{
+  font-size:11px;color:var(--ink-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.slot .meta span.set{color:var(--ink)}
+.slot .crow{
+  grid-column:1 / -1;display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  gap:9px;align-items:center;font-size:11px;color:var(--ink-dim);
+  border-top:1px solid var(--line);padding-top:7px;margin-top:1px;
+}
+.slot .crow b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
+.acts{display:flex;gap:5px}
+.slotbtn{
+  display:inline-flex;align-items:center;cursor:pointer;font-size:11px;font-weight:600;
+  padding:6px 9px;border-radius:8px;border:1px solid var(--line);background:#0e0e18;color:var(--ink-dim);
+}
+.slotbtn:hover{border-color:#44445c;color:var(--ink)}
+.slotbtn.set{border-color:rgba(77,219,160,.5);color:var(--ok)}
+
+.hint{font-size:11.5px;color:var(--ink-dim);line-height:1.5;margin:9px 0 0}
+.hint b{color:var(--ink)}
+video{width:100%;border-radius:10px;border:1px solid var(--line);margin-top:10px;background:#000}
+.dot{width:7px;height:7px;border-radius:50%;background:#2a0511;display:inline-block;margin-right:6px;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Patate Bounce Studio</h1>
+    <p>Give every patate its own PNG and its own sound. Merge 1 through 9, record, post.</p>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="stage"><canvas id="cv" width="720" height="1280"></canvas></div>
+      <div class="stagebar">
+        <button id="play" class="primary">Start</button>
+        <button id="reset">Reset</button>
+        <button id="rec" class="rec">Record</button>
+        <button id="shape">Square 1:1</button>
+      </div>
+      <p class="hint" id="recnote">Recording grabs the stage plus the live audio mix. It stops on its own after 90 seconds.</p>
+      <video id="out" controls hidden></video>
+    </div>
+
+    <div class="rack">
+      <div class="card">
+        <h2>The patates</h2>
+        <div class="toggles" style="margin-bottom:11px">
+          <label class="chip on"><input type="checkbox" id="circle" checked> Crop PNGs to a circle</label>
+        </div>
+        <div class="slots" id="slots"></div>
+        <p class="hint">Each row is one patate. <b>PNG</b> sets its look &mdash; by default it is centre-cropped and masked to a circle, so square images come out round; untick the box above to keep the original shape and transparency. <b>Sound</b> for patate <b>1</b> fires every time it hits the ring; for <b>2&ndash;9</b> it fires the moment that patate is formed. Only one patate sound is ever audible &mdash; whichever plays last cuts off the one still playing. The exception is a <b>reveal</b>: the first time a level is ever reached, its clip is protected and plays out in full, and nothing interrupts it. A lower patate also will not talk over a higher one that is still playing: it is muted instead, 60% of the time by default. The <b>odds</b> slider on each row sets how often that level actually makes its sound; it starts on a curve where low numbers speak less, since they bounce and merge constantly. A reveal ignores the odds and always plays. The <b>size</b> slider next to it nudges that one level up or down from the 25% ladder, and resizes any already in the ring. Empty 2&ndash;9 slots fall back to a chime that rises with the number; patate 1 stays silent until you give it a clip.</p>
+        <div class="acts" style="margin-top:10px;flex-wrap:wrap">
+          <button id="resetodds">Reset odds</button>
+          <button id="resetsizes">Reset sizes</button>
+          <button id="clearall">Clear all patates</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Text</h2>
+        <div class="row">
+          <label for="badge">Corner badge</label>
+          <input type="text" id="badge" value="PATATE MERGE #5" maxlength="28">
+        </div>
+        <div class="row">
+          <label for="caption">Caption inside the ring</label>
+          <input type="text" id="caption" value="WHAIT FOR THE ULTIMATE PATATE" maxlength="60">
+        </div>
+        <div class="row">
+          <label for="scorelabel">Counter label</label>
+          <input type="text" id="scorelabel" value="SCORE" maxlength="14">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Bounce sound</h2>
+        <input type="file" id="snds" accept="audio/*" multiple>
+        <ul id="sndlist" style="margin:9px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px"></ul>
+        <div class="row" style="margin-top:11px">
+          <label for="sndmode">Playback</label>
+          <select id="sndmode">
+            <option value="melody">Melody &mdash; pitch climbs a scale</option>
+            <option value="cycle">Cycle &mdash; one clip per bounce</option>
+            <option value="random">Random</option>
+            <option value="flat">Flat &mdash; same pitch every hit</option>
+            <option value="off">Off &mdash; merges only</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="bvol">Bounce level <b id="bvolv">7%</b></label>
+          <input type="range" id="bvol" min="0" max="100" value="7">
+        </div>
+        <div class="row">
+          <label for="vol">Master volume <b id="volv">70%</b></label>
+          <input type="range" id="vol" min="0" max="100" value="70">
+        </div>
+        <button id="clearsnds">Clear bounce sounds</button>
+        <p class="hint">Bounce level is deliberately near the floor &mdash; the ring hits should sit under the patate sounds, not compete with them. Drag it to 0 to silence them completely.</p>
+      </div>
+
+      <div class="card">
+        <h2>Merging</h2>
+        <div class="row">
+          <label for="levels">Levels <b id="levelsv">9</b></label>
+          <input type="range" id="levels" min="3" max="14" value="9">
+        </div>
+        <div class="toggles">
+          <label class="chip on"><input type="checkbox" id="merge" checked> Equal numbers merge</label>
+          <label class="chip on"><input type="checkbox" id="pop7" checked> Two <span id="poplbl">9</span>s pop</label>
+          <label class="chip"><input type="checkbox" id="nums"> Show numbers</label>
+          <label class="chip on"><input type="checkbox" id="chute" checked> Drop chute</label>
+          <label class="chip on"><input type="checkbox" id="thin" checked> Use per-level odds</label>
+          <label class="chip on"><input type="checkbox" id="parts" checked> Merge sparks</label>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <label for="duck">Big sounds hold the floor <b id="duckv">60%</b></label>
+          <input type="range" id="duck" min="0" max="100" value="60">
+        </div>
+        <p class="hint">Two patates of the same number become one of the next number, 25% bigger, up to the top level. <b>Levels</b> sets how many there are &mdash; raising it adds rows to the patate list and keeps the files you already picked. New 1s fall in through the chute at the top.</p>
+      </div>
+
+      <div class="card">
+        <h2>Physics</h2>
+        <div class="row">
+          <label for="grav">Gravity <b id="gravv">1.00</b></label>
+          <input type="range" id="grav" min="0" max="300" value="100">
+        </div>
+        <div class="row">
+          <label for="bounce">Bounciness <b id="bouncev">1.00</b></label>
+          <input type="range" id="bounce" min="70" max="115" value="100">
+        </div>
+        <div class="row">
+          <label for="size">Patate 1 size <b id="sizev">18</b></label>
+          <input type="range" id="size" min="8" max="40" value="18">
+        </div>
+        <div class="row">
+          <label for="tramp">Trampoline <b id="trampv">6.0</b></label>
+          <input type="range" id="tramp" min="0" max="140" value="60">
+        </div>
+        <div class="row">
+          <label for="spin">Ring spin <b id="spinv">0.00</b></label>
+          <input type="range" id="spin" min="-200" max="200" value="0">
+        </div>
+        <div class="row">
+          <label for="gap">Extra escape gap <b id="gapv">0&deg;</b></label>
+          <input type="range" id="gap" min="0" max="90" value="0">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Supply</h2>
+        <div class="toggles">
+          <label class="chip on"><input type="checkbox" id="spawn" checked> Drop new 1s</label>
+          <label class="chip"><input type="checkbox" id="trail"> Trails</label>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <label for="rate">Drop every <b id="ratev">1.2</b> s</label>
+          <input type="range" id="rate" min="2" max="40" value="12">
+        </div>
+        <div class="row">
+          <label for="maxb">Patate cap <b id="maxbv">60</b></label>
+          <input type="range" id="maxb" min="2" max="200" value="60">
+        </div>
+        <div class="row">
+          <label for="start">Starting 1s <b id="startv">2</b></label>
+          <input type="range" id="start" min="0" max="20" value="2">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var cv = $("cv"), ctx = cv.getContext("2d", {alpha:false});
+
+var MAXTOP = 14;      /* slots are always built for this many */
+var TOP = 9;          /* highest patate number in play, set by the Levels slider */
+var GROWTH = 1.25;    /* each merge is 25% bigger */
+
+var C = {grav:1, rest:1.00, size:18, spin:0, gap:0, spawn:true, trail:false,
+         max:60, rate:1.2, start:2, vol:0.7, mode:"melody",
+         merge:true, pop7:true, nums:false, chute:true, bvol:0.07,
+         tramp:6, thin:true, duck:0.6, parts:true, circle:true,
+         badge:"PATATE MERGE #5", caption:"WHAIT FOR THE ULTIMATE PATATE", label:"SCORE"};
+
+var MIN_IMPACT = 1.1;   /* below this, wall contact is a graze, not a bounce */
+
+function tierRadius(n){
+  var r = C.size * Math.pow(GROWTH, n - 1);
+  if(R > 0){
+    /* if the top level would not fit, shrink the whole ladder by one factor so
+       every step keeps its 25% ratio instead of the big ones flattening out */
+    var cap = R*0.42, top = C.size * Math.pow(GROWTH, TOP - 1);
+    if(top > cap) r *= cap/top;
+  }
+  var s = slots[n-1];
+  if(s && s.mul !== 1) r *= s.mul;                 /* this level's own size tweak */
+  return R > 0 ? Math.min(r, R*0.48) : r;
+}
+function tierHue(n){ return (n - 1) / TOP * 300; }
+
+/* ---------- per-patate assets ---------- */
+var DEFAULT_EMOJI = ["🥔","😈","🧑‍🌾","👩‍⚕️","🧸","🤠","👸","🧙","👑","🧛","🤖","👽","🐉","🌋"];
+var slots = [];       /* index 0 = patate 1; built for MAXTOP so raising Levels keeps your files */
+for(var si=0; si<MAXTOP; si++) slots.push({spr:null, img:null, sprName:"", buf:null, sndName:"", def:null,
+                                           chance:1, custom:false, mul:1});
+
+function makeSlotSprite(img){ return C.circle ? circleSprite(img) : imageSprite(img); }
+function recropAll(){
+  for(var ri=0; ri<MAXTOP; ri++){
+    if(slots[ri].img) slots[ri].spr = makeSlotSprite(slots[ri].img);
+  }
+  buildSlots();
+}
+
+function emojiSprite(ch){
+  var s = 160, c = document.createElement("canvas"); c.width = c.height = s;
+  var x = c.getContext("2d");
+  x.font = "120px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(ch, s/2, s/2 + 6);
+  return {c:c, ar:1};
+}
+/* centre-crop to a square, then mask to a circle */
+function circleSprite(img){
+  var s = 224, c = document.createElement("canvas");
+  c.width = c.height = s;
+  var x = c.getContext("2d");
+  x.save();
+  x.beginPath(); x.arc(s/2, s/2, s/2, 0, 6.2832); x.clip();
+  var r = Math.max(s/img.width, s/img.height);
+  var w = img.width*r, h = img.height*r;
+  x.drawImage(img, (s-w)/2, (s-h)/2, w, h);
+  x.restore();
+  return {c:c, ar:1};
+}
+function imageSprite(img){
+  var maxd = 256;
+  var r = Math.min(maxd/img.width, maxd/img.height, 1);
+  var w = Math.max(1, Math.round(img.width*r)), h = Math.max(1, Math.round(img.height*r));
+  var c = document.createElement("canvas"); c.width = w; c.height = h;
+  c.getContext("2d").drawImage(img, 0, 0, w, h);   /* transparency kept, no crop */
+  return {c:c, ar:w/h};
+}
+function spriteFor(n){
+  var s = slots[n-1];
+  if(s.spr) return s.spr;
+  if(!s.def) s.def = emojiSprite(DEFAULT_EMOJI[(n-1) % DEFAULT_EMOJI.length]);
+  return s.def;
+}
+/* average colour of a sprite, weighted by alpha so transparent edges do not
+   wash it out; brightened just enough to read against the navy stage */
+function avgColor(sp){
+  if(sp.avg) return sp.avg;
+  var s = 16, c = document.createElement("canvas");
+  c.width = c.height = s;
+  var x = c.getContext("2d");
+  x.drawImage(sp.c, 0, 0, s, s);
+  var r = 0, g = 0, b = 0, n = 0;
+  try{
+    var d = x.getImageData(0, 0, s, s).data;
+    for(var i=0;i<d.length;i+=4){
+      var a = d[i+3];
+      if(a < 24) continue;                 /* skip the transparent surround */
+      r += d[i]*a; g += d[i+1]*a; b += d[i+2]*a; n += a;
+    }
+  }catch(e){}
+  if(!n){ sp.avg = [255, 255, 255]; return sp.avg; }
+  r = r/n; g = g/n; b = b/n;
+  var peak = Math.max(r, g, b);
+  if(peak > 0 && peak < 185){               /* lift dark averages, keep the hue */
+    var lift = 185/peak;
+    r *= lift; g *= lift; b *= lift;
+  }
+  sp.avg = [Math.round(Math.min(255,r)), Math.round(Math.min(255,g)), Math.round(Math.min(255,b))];
+  return sp.avg;
+}
+
+/* draw a sprite fitted inside a 2r box, aspect preserved */
+function drawSprite(sp, r){
+  var w, h;
+  if(sp.ar >= 1){ w = r*2; h = r*2/sp.ar; } else { h = r*2; w = r*2*sp.ar; }
+  ctx.drawImage(sp.c, -w/2, -h/2, w, h);
+}
+
+/* ---------- audio ---------- */
+var ac = null, master = null, bounceBus = null, recDest = null;
+var buffers = [], bufNames = [], melodyStep = 0, cycleIdx = 0, lastVoice = -1;
+var SCALE = [0,2,4,7,9,12,14,16,19,21,24,26,28,31];
+
+function audio(){
+  if(!ac){
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return null;
+    ac = new AC();
+    master = ac.createGain();
+    master.gain.value = C.vol;
+    master.connect(ac.destination);
+    bounceBus = ac.createGain();          /* ring hits sit way under the patate sounds */
+    bounceBus.gain.value = C.bvol;
+    bounceBus.connect(master);
+  }
+  if(ac.state === "suspended") ac.resume();
+  return ac;
+}
+
+/* --- bounce sound (layers freely) --- */
+function semis(){
+  if(C.mode === "flat") return 0;
+  if(C.mode === "melody"){ var n = SCALE[melodyStep % SCALE.length]; melodyStep++; return n; }
+  if(C.mode === "random") return SCALE[(Math.random()*SCALE.length)|0];
+  return 0;
+}
+function pickBuffer(){
+  if(!buffers.length) return null;
+  if(C.mode === "random" || C.mode === "melody") return buffers[(Math.random()*buffers.length)|0];
+  var b = buffers[cycleIdx % buffers.length]; cycleIdx++; return b;
+}
+function pluck(t, st){
+  var f = 220 * Math.pow(2, st/12);
+  var o = ac.createOscillator(), g = ac.createGain();
+  var o2 = ac.createOscillator(), g2 = ac.createGain();
+  o.type = "triangle"; o.frequency.value = f;
+  o2.type = "sine"; o2.frequency.value = f*2.01; g2.gain.value = 0.25;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.4, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + 0.42);
+  o.connect(g); o2.connect(g2); g2.connect(g); g.connect(bounceBus);
+  o.start(t); o2.start(t); o.stop(t + 0.45); o2.stop(t + 0.45);
+}
+function hitSound(){
+  if(!ac || C.mode === "off") return;
+  var t = ac.currentTime;
+  if(t - lastVoice < 0.012) return;         /* voice guard so a burst does not clip */
+  lastVoice = t;
+  var st = semis(), buf = pickBuffer();
+  if(!buf){ pluck(t, st); return; }
+  var src = ac.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = Math.pow(2, st/12);
+  var g = ac.createGain(); g.gain.value = 0.85;
+  src.connect(g); g.connect(bounceBus); src.start(t);
+}
+
+/* --- patate sound: strictly one voice at a time --- */
+var patateVoice = null;
+function cutPatateVoice(t){
+  if(!patateVoice) return;
+  var v = patateVoice;
+  patateVoice = null;
+  try{
+    v.g.gain.cancelScheduledValues(t);
+    v.g.gain.setValueAtTime(v.g.gain.value, t);
+    v.g.gain.linearRampToValueAtTime(0.0001, t + 0.015);   /* short fade kills the click */
+    v.src.stop(t + 0.02);
+    if(v.extra) v.extra.stop(t + 0.02);
+  }catch(e){}
+}
+function chime(t, n){
+  var f = 330 * Math.pow(2, (n - 1) * 2 / 12);
+  var o = ac.createOscillator(), g = ac.createGain();
+  var o2 = ac.createOscillator(), g2 = ac.createGain();
+  o.type = "sine"; o.frequency.value = f;
+  o2.type = "triangle"; o2.frequency.value = f * 1.5; g2.gain.value = 0.3;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.55, t + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + 0.9);
+  o.connect(g); o2.connect(g2); g2.connect(g); g.connect(master);
+  o.start(t); o2.start(t); o.stop(t + 0.95); o2.stop(t + 0.95);
+  return {src:o, extra:o2, g:g};
+}
+/* exclusive = this sound cuts whatever patate sound is still playing */
+/* One patate voice. Any patate sound cuts whatever is still playing - except a
+   reveal, the first time a level is ever reached, which is protected and plays
+   out in full. Only another reveal can take a reveal's place. */
+var protectedUntil = -1;
+var voiceLevel = 0, voiceUntil = -1;   /* what is speaking right now, and until when */
+
+/* low levels bounce and merge constantly, so they speak less often than high ones */
+/* the default curve: low patates bounce and merge constantly, so they speak less */
+function curveChance(n){
+  if(TOP < 2) return 1;
+  return Math.min(1, 0.37 + 0.88 * Math.pow((n - 1) / (TOP - 1), 1.5));
+}
+/* what the slider shows: the level's own value once you have set one */
+function slotChance(n){
+  var s = slots[n-1];
+  return s && s.custom ? s.chance : curveChance(n);
+}
+function soundChance(n){
+  if(!C.thin) return 1;
+  return slotChance(n);
+}
+
+function playPatate(n, chimeIfEmpty, protect){
+  if(!ac) return;
+  var t = ac.currentTime;
+  if(!protect){
+    if(t < protectedUntil) return;                  /* a reveal is speaking: let it finish */
+    /* a small patate must not talk over a bigger one still playing */
+    if(t < voiceUntil && n < voiceLevel && Math.random() < C.duck) return;
+  }
+  var buf = slots[n-1].buf;
+  cutPatateVoice(t);
+  if(!buf){
+    if(chimeIfEmpty){
+      patateVoice = chime(t, n);
+      voiceLevel = n; voiceUntil = t + 0.95;
+      if(protect) protectedUntil = t + 0.95;
+    } else {
+      voiceLevel = 0; voiceUntil = -1;              /* silence: nothing to protect */
+    }
+    return;
+  }
+  var src = ac.createBufferSource();
+  src.buffer = buf;
+  var g = ac.createGain(); g.gain.value = 1;
+  src.connect(g); g.connect(master);
+  src.start(t);
+  var voice = {src:src, g:g};
+  src.onended = function(){ if(patateVoice === voice) patateVoice = null; };
+  patateVoice = voice;
+  var dur = Math.min(buf.duration, 6);
+  voiceLevel = n; voiceUntil = t + dur;
+  if(protect) protectedUntil = t + dur;
+}
+
+/* ---------- world ---------- */
+var W = cv.width, H = cv.height, cx = W/2, cy = H/2, R = 0, railW = 0, chuteY = 0;
+var rot = 0, balls = [], parts = [], score = 0, running = false, dropClock = 0, clock = 0;
+
+/* a small puff of the new patate's own colour */
+function burst(x, y, lvl, r){
+  if(!C.parts) return;
+  var col = avgColor(spriteFor(lvl));
+  var n = 9 + Math.min(11, Math.round(r/7));
+  for(var i=0;i<n;i++){
+    var a = Math.random()*6.2832, sp = 1.4 + Math.random()*3.4;
+    parts.push({x:x, y:y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+                life:1, size: 1.2 + r*0.075 + Math.random()*2, col:col});
+  }
+  if(parts.length > 420) parts.splice(0, parts.length - 420);
+}
+var found = [];
+
+function layout(){
+  W = cv.width; H = cv.height;
+  cx = W/2; cy = H*0.47;
+  R = Math.min(W*0.46, H*0.31);
+  railW = R*0.17;
+  chuteY = cy - Math.sqrt(Math.max(R*R - railW*railW, 1));   /* where the rails meet the ring */
+}
+function wrapAngle(a){ return Math.atan2(Math.sin(a), Math.cos(a)); }
+
+function makeBall(x, y, vx, vy, n){
+  n = n || 1;
+  return {x:x, y:y, vx:vx, vy:vy, n:n, r:tierRadius(n),
+          ph: Math.random()*6.283,          /* phase of the gentle tilt */
+          cool:0, rest:0,                   /* retrigger guard + wall-crawl timer */
+          pop:0, tr:[], out:false, dead:false};
+}
+function dropOne(){
+  if(balls.length >= C.max) return;
+  var jitter = (Math.random()-0.5) * Math.max(0, railW - tierRadius(1)) * 1.2;
+  var y = C.chute ? -tierRadius(1) : cy - R*0.6;
+  balls.push(makeBall(cx + jitter, y, (Math.random()-0.5)*0.6, 1.5, 1));
+}
+function reset(){
+  layout();
+  rot = 0; score = 0; melodyStep = 0; cycleIdx = 0; dropClock = 0; balls = []; parts = [];
+  found = [];
+  for(var fi=0; fi<=TOP; fi++) found.push(fi === 1);   /* only patate 1 starts unlocked */
+  if(ac) cutPatateVoice(ac.currentTime);
+  for(var i=0;i<C.start;i++){
+    var a = Math.random()*6.283, d = R*0.45*Math.random();
+    balls.push(makeBall(cx + Math.cos(a)*d, cy + Math.sin(a)*d,
+                        (Math.random()-0.5)*5, (Math.random()-0.5)*3, 1));
+  }
+  draw();
+}
+
+function step(dt){
+  rot += C.spin * dt;
+  clock += dt;
+  if(C.spawn){
+    dropClock += dt;
+    while(dropClock >= C.rate){ dropClock -= C.rate; dropOne(); }
+  }
+
+  var SUB = 4, h = dt/SUB, i, j;
+  var gapRad = C.gap * Math.PI/180;
+  for(var s=0;s<SUB;s++){
+    for(i=0;i<balls.length;i++){
+      var b = balls[i];
+      if(b.cool > 0) b.cool -= h;
+      b.vy += C.grav * 0.45 * h * 60;
+      b.x += b.vx * h * 60;
+      b.y += b.vy * h * 60;
+
+      var dx = b.x - cx, dy = b.y - cy, d = Math.hypot(dx, dy) || 1e-6;
+      var inChute = C.chute && b.y < chuteY && b.r < railW;
+
+      if(inChute){
+        /* vertical guide rails above the ring: silent walls */
+        if(b.x - b.r < cx - railW){ b.x = cx - railW + b.r; b.vx = Math.abs(b.vx)*0.6; }
+        if(b.x + b.r > cx + railW){ b.x = cx + railW - b.r; b.vx = -Math.abs(b.vx)*0.6; }
+        continue;
+      }
+      if(b.out) continue;
+
+      if(d + b.r > R){
+        /* the mouth of the chute is open */
+        if(C.chute && Math.abs(dx) < railW && dy < 0 && b.r < railW) continue;
+        if(gapRad > 0){
+          var rel = wrapAngle(Math.atan2(dy, dx) - (rot - Math.PI/2));
+          if(Math.abs(rel) < gapRad/2){ b.out = true; continue; }
+        }
+        var nx = dx/d, ny = dy/d;
+        b.x = cx + nx*(R - b.r);
+        b.y = cy + ny*(R - b.r);
+        var vn = b.vx*nx + b.vy*ny;          /* > 0 means it is driving into the wall */
+        b.vx = (b.vx - 2*vn*nx) * C.rest;
+        b.vy = (b.vy - 2*vn*ny) * C.rest;
+
+        /* the ring is a trampoline: it always hands back at least this much,
+           aimed inward, so nothing can ever wind down and settle */
+        if(C.tramp > 0){
+          var inw = -(b.vx*nx + b.vy*ny);           /* speed heading back inside */
+          if(inw < C.tramp){
+            b.vx -= nx*(C.tramp - inw);
+            b.vy -= ny*(C.tramp - inw);
+          }
+        }
+
+        var sp = Math.hypot(b.vx, b.vy);
+        if(sp > 32){ b.vx *= 32/sp; b.vy *= 32/sp; }
+
+        if(vn > MIN_IMPACT && b.cool <= 0){
+          /* a real hit: count it once, then go deaf for a moment */
+          score += 10;
+          hitSound();
+          if(b.n === 1 && Math.random() < soundChance(1)) playPatate(1, false, false);
+          b.cool = 0.07;
+          b.rest = 0;
+        } else if(vn <= MIN_IMPACT){
+          /* grazing the wall - silent, and timed so it can never crawl */
+          b.rest += h;
+          if(b.rest > 0.25){
+            b.vx -= nx*4.5; b.vy -= ny*4.5;
+            b.rest = 0;
+          }
+        }
+      }
+    }
+  }
+
+  /* patate vs patate: merge equal numbers, otherwise separate */
+  var n = balls.length, born = [];
+  if(n <= 170){
+    for(i=0;i<n;i++){
+      for(j=i+1;j<n;j++){
+        var a1 = balls[i], b1 = balls[j];
+        if(a1.out || b1.out || a1.dead || b1.dead) continue;
+        var ddx = b1.x - a1.x, ddy = b1.y - a1.y;
+        var dd = Math.hypot(ddx, ddy), m = a1.r + b1.r;
+        if(dd <= 0 || dd >= m) continue;
+
+        if(C.merge && a1.n === b1.n && (a1.n < TOP || C.pop7)){
+          a1.dead = b1.dead = true;
+          if(a1.n >= TOP){
+            playPatate(TOP, true, true);                     /* the top pop always plays out */
+            burst((a1.x + b1.x)/2, (a1.y + b1.y)/2, TOP, a1.r*1.6);
+            score += 1000;
+          } else {
+            var nb = makeBall((a1.x + b1.x)/2, (a1.y + b1.y)/2,
+                              (a1.vx + b1.vx)/2, (a1.vy + b1.vy)/2, a1.n + 1);
+            nb.pop = 1;                                      /* squash-in flourish */
+            born.push(nb);
+            var lvl = a1.n + 1, reveal = !found[lvl];
+            found[lvl] = true;
+            burst(nb.x, nb.y, lvl, nb.r);
+            score += lvl * 50;
+            if(reveal || Math.random() < soundChance(lvl)) playPatate(lvl, true, reveal);
+          }
+          continue;
+        }
+
+        var ux = ddx/dd, uy = ddy/dd, ov = (m - dd)/2;
+        a1.x -= ux*ov; a1.y -= uy*ov; b1.x += ux*ov; b1.y += uy*ov;
+        var rvn = (b1.vx - a1.vx)*ux + (b1.vy - a1.vy)*uy;
+        if(rvn < 0){
+          var imp = rvn * 0.92;
+          a1.vx += imp*ux; a1.vy += imp*uy;
+          b1.vx -= imp*ux; b1.vy -= imp*uy;
+        }
+      }
+    }
+  }
+
+  /* nothing may end a frame outside the ring: crowding used to push patates
+     through the wall, where they ground against it and machine-gunned the sound */
+  for(i=0;i<balls.length;i++){
+    var c1 = balls[i];
+    if(c1.dead || c1.out) continue;
+    if(C.chute && c1.y < chuteY && c1.r < railW) continue;
+    var cdx = c1.x - cx, cdy = c1.y - cy, cd = Math.hypot(cdx, cdy);
+    if(cd + c1.r <= R) continue;
+    if(C.chute && Math.abs(cdx) < railW && cdy < 0 && c1.r < railW) continue;
+    cd = cd || 1e-6;
+    var cnx = cdx/cd, cny = cdy/cd;
+    c1.x = cx + cnx*(R - c1.r);
+    c1.y = cy + cny*(R - c1.r);
+    var cvn = c1.vx*cnx + c1.vy*cny;
+    if(cvn > 0){ c1.vx -= cvn*cnx; c1.vy -= cvn*cny; }   /* drop the outward push, silently */
+  }
+
+  for(i=parts.length-1;i>=0;i--){
+    var p = parts[i];
+    p.x += p.vx*dt*60; p.y += p.vy*dt*60;
+    p.vx *= 0.93;
+    p.vy = p.vy*0.93 + C.grav*0.1*dt*60;
+    p.life -= dt*1.7;
+    if(p.life <= 0) parts.splice(i, 1);
+  }
+
+  balls = balls.filter(function(b){
+    if(b.dead) return false;
+    if(b.pop > 0) b.pop = Math.max(0, b.pop - dt*5);
+    if(b.y > H + 400 || b.y < -H) return false;
+    if(!b.out) return true;
+    return Math.abs(b.x - cx) < W;
+  });
+  if(born.length) balls = balls.concat(born);
+}
+
+/* ---------- render ---------- */
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+function wrapLines(text, maxW){
+  var words = text.split(/\s+/), lines = [], cur = "";
+  for(var i=0;i<words.length;i++){
+    var test = cur ? cur + " " + words[i] : words[i];
+    if(cur && ctx.measureText(test).width > maxW){ lines.push(cur); cur = words[i]; }
+    else cur = test;
+  }
+  if(cur) lines.push(cur);
+  return lines;
+}
+
+function draw(){
+  ctx.fillStyle = "#15152e";
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+
+  /* caption, centred inside the ring, behind the patates */
+  if(C.caption.trim()){
+    ctx.font = "700 " + Math.round(W*0.082) + "px 'Archivo Black','Arial Black',sans-serif";
+    var lines = wrapLines(C.caption.trim(), R*1.75);
+    var lh = W*0.105, y0 = cy - (lines.length - 1)*lh/2;
+    ctx.fillStyle = "#fff";
+    for(var li=0; li<lines.length; li++) ctx.fillText(lines[li], cx, y0 + li*lh);
+  }
+
+  /* guide rails */
+  if(C.chute){
+    ctx.strokeStyle = "rgba(255,255,255,.9)";
+    ctx.lineWidth = Math.max(2, W*0.0055);
+    ctx.beginPath();
+    ctx.moveTo(cx - railW, 0); ctx.lineTo(cx - railW, chuteY);
+    ctx.moveTo(cx + railW, 0); ctx.lineTo(cx + railW, chuteY);
+    ctx.stroke();
+  }
+
+  /* rainbow ring */
+  var lw = Math.max(4, W*0.0095);
+  ctx.lineWidth = lw; ctx.lineCap = "butt";
+  var gapRad = C.gap * Math.PI/180, gapMid = rot - Math.PI/2;
+  var chuteHalf = C.chute ? Math.asin(Math.min(1, railW/R)) : 0;
+  for(var i=0;i<200;i++){
+    var a0 = i/200*6.2832, a1 = (i + 1.25)/200*6.2832;
+    var up = wrapAngle(a0 + Math.PI/2);
+    if(chuteHalf > 0 && Math.abs(up) < chuteHalf) continue;              /* chute mouth */
+    if(gapRad > 0 && Math.abs(wrapAngle(a0 - gapMid)) < gapRad/2) continue;
+    ctx.strokeStyle = "hsl(" + ((i/200*360 + rot*57.3) % 360 + 360) % 360 + " 92% 58%)";
+    ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1); ctx.stroke();
+  }
+
+  /* patates */
+  for(var k=0;k<balls.length;k++){
+    var b = balls[k];
+    if(C.trail){
+      b.tr.push(b.x, b.y);
+      if(b.tr.length > 10) b.tr.splice(0, 2);
+      ctx.strokeStyle = "hsla(" + tierHue(b.n) + ",90%,65%,.16)";
+      ctx.lineWidth = b.r*0.5;
+      ctx.beginPath();
+      for(var t=0;t<b.tr.length;t+=2){
+        if(t) ctx.lineTo(b.tr[t], b.tr[t+1]); else ctx.moveTo(b.tr[t], b.tr[t+1]);
+      }
+      ctx.stroke();
+    }
+    var rr = b.r * (1 + b.pop*0.28);
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(Math.sin(clock*1.7 + b.ph) * 0.16);   /* a slow 9-degree sway, never a spin */
+    drawSprite(spriteFor(b.n), rr);
+    ctx.restore();
+
+    if(C.nums){
+      var fs = Math.round(b.r*0.9);
+      ctx.font = "700 " + fs + "px 'Archivo Black','Arial Black',sans-serif";
+      ctx.lineWidth = Math.max(2, fs*0.18);
+      ctx.strokeStyle = "rgba(8,8,16,.9)";
+      ctx.strokeText(b.n, b.x, b.y + rr*0.75);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(b.n, b.x, b.y + rr*0.75);
+    }
+  }
+
+  /* merge sparks, over the patates */
+  for(var pi=0; pi<parts.length; pi++){
+    var pp = parts[pi];
+    ctx.globalAlpha = Math.max(0, Math.min(1, pp.life));
+    ctx.fillStyle = "rgb(" + pp.col[0] + "," + pp.col[1] + "," + pp.col[2] + ")";
+    ctx.beginPath();
+    ctx.arc(pp.x, pp.y, pp.size*(0.35 + pp.life*0.65), 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  /* corner badge */
+  if(C.badge.trim()){
+    ctx.font = "700 " + Math.round(W*0.034) + "px 'Archivo Black','Arial Black',sans-serif";
+    var bt = C.badge.trim();
+    var btw = ctx.measureText(bt).width;
+    var bh = W*0.072, bw = btw + W*0.05;
+    var bx = W*0.042, by = H*0.028;
+    ctx.fillStyle = "#f2672e";
+    roundRect(bx, by, bw, bh, bh*0.42);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(bt, bx + bw/2, by + bh/2 + W*0.002);
+  }
+
+  /* score */
+  ctx.font = "700 " + Math.round(W*0.088) + "px 'Archivo Black','Arial Black',sans-serif";
+  ctx.fillStyle = "#fff";
+  ctx.fillText((C.label ? C.label + ": " : "") + score, cx, cy + R + H*0.072);
+
+  /* roster: the seven patates, unlocked as they are reached */
+  var gapx = W*0.013;
+  var rs = Math.min(W*0.044, (W*0.9/TOP - gapx)/2);   /* the strip always fits its count */
+  var y = cy + R + H*0.128;
+  var x = cx - (TOP*(rs*2 + gapx) - gapx)/2 + rs;
+  for(var m=1;m<=TOP;m++){
+    ctx.lineWidth = Math.max(1.5, rs*0.075);
+    ctx.strokeStyle = found[m] ? "rgba(255,255,255,.92)" : "rgba(255,255,255,.22)";
+    ctx.beginPath(); ctx.arc(x, y, rs, 0, 6.2832); ctx.stroke();
+    if(found[m]){
+      ctx.save(); ctx.translate(x, y);
+      drawSprite(spriteFor(m), rs*0.82);
+      ctx.restore();
+    } else {
+      ctx.font = "700 " + Math.round(rs*1.1) + "px 'Archivo Black','Arial Black',sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,.35)";
+      ctx.fillText("?", x, y + rs*0.06);
+    }
+    x += rs*2 + gapx;
+  }
+}
+
+var last = 0;
+function loop(t){
+  var dt = Math.min((t - last)/1000 || 0, 1/30);
+  last = t;
+  if(running) step(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(function(t){ last = t; requestAnimationFrame(loop); });
+
+/* ---------- recording ---------- */
+var recorder = null, chunks = [], recTimer = null;
+function startRec(){
+  try{
+    audio();
+    if(ac && !recDest){
+      recDest = ac.createMediaStreamDestination();
+      master.connect(recDest);
+    }
+    var vs = cv.captureStream(60);
+    var tracks = vs.getVideoTracks().slice();
+    if(recDest) tracks = tracks.concat(recDest.stream.getAudioTracks());
+    var stream = new MediaStream(tracks);
+    var types = ["video/mp4;codecs=avc1,mp4a.40.2", "video/webm;codecs=vp9,opus", "video/webm"];
+    var mime = "";
+    for(var i=0;i<types.length;i++){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported(types[i])){ mime = types[i]; break; }
+    }
+    recorder = new MediaRecorder(stream, mime ? {mimeType:mime, videoBitsPerSecond:8000000} : undefined);
+    chunks = [];
+    recorder.ondataavailable = function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = function(){
+      var blob = new Blob(chunks, {type: (recorder && recorder.mimeType) || "video/webm"});
+      var v = $("out");
+      v.src = URL.createObjectURL(blob);
+      v.hidden = false;
+      $("recnote").innerHTML = "Clip ready below. Right-click it and choose <b>Save video as…</b> to keep the file.";
+    };
+    recorder.start(250);
+    recTimer = setTimeout(stopRec, 90000);
+    $("rec").innerHTML = '<span class="dot"></span>Stop';
+    if(!running) togglePlay();
+  }catch(e){
+    $("recnote").textContent = "This browser blocked canvas recording. Use a screen recorder on the stage instead.";
+    recorder = null;
+    $("rec").textContent = "Record";
+  }
+}
+function stopRec(){
+  clearTimeout(recTimer);
+  if(recorder && recorder.state !== "inactive") recorder.stop();
+  recorder = null;
+  $("rec").textContent = "Record";
+}
+
+/* ---------- patate slot UI ---------- */
+function buildSlots(){
+  var box = $("slots");
+  box.textContent = "";
+  for(var n=1;n<=TOP;n++){
+    (function(n){
+      var s = slots[n-1];
+      var row = document.createElement("div");
+      row.className = "slot";
+
+      var pv = document.createElement("div");
+      pv.className = "pv";
+      var im = document.createElement("img");
+      im.alt = "";
+      try { im.src = spriteFor(n).c.toDataURL(); } catch(e){}
+      var num = document.createElement("b");
+      num.textContent = n;
+      pv.appendChild(im); pv.appendChild(num);
+
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      var l1 = document.createElement("span");
+      l1.textContent = s.sprName || "default image";
+      if(s.sprName) l1.className = "set";
+      var l2 = document.createElement("span");
+      l2.textContent = s.sndName
+        ? s.sndName + (n === 1 ? "  ·  on bounce" : "  ·  on merge")
+        : (n === 1 ? "no bounce sound yet" : "chime on merge");
+      if(s.sndName) l2.className = "set";
+      meta.appendChild(l1); meta.appendChild(l2);
+
+      var acts = document.createElement("div");
+      acts.className = "acts";
+
+      var bImg = document.createElement("label");
+      bImg.className = "slotbtn" + (s.spr ? " set" : "");
+      bImg.textContent = "PNG";
+      var fImg = document.createElement("input");
+      fImg.type = "file"; fImg.accept = "image/*"; fImg.hidden = true;
+      fImg.addEventListener("change", function(e){
+        var f = e.target.files[0]; if(!f) return;
+        var img = new Image();
+        img.onload = function(){
+          slots[n-1].img = img;                    /* kept so the crop can be redone */
+          slots[n-1].spr = makeSlotSprite(img);
+          slots[n-1].sprName = f.name;
+          URL.revokeObjectURL(img.src);
+          buildSlots();
+        };
+        img.onerror = function(){ l1.textContent = "could not read that image"; };
+        img.src = URL.createObjectURL(f);
+      });
+      bImg.appendChild(fImg);
+
+      var bSnd = document.createElement("label");
+      bSnd.className = "slotbtn" + (s.buf ? " set" : "");
+      bSnd.textContent = "Sound";
+      var fSnd = document.createElement("input");
+      fSnd.type = "file"; fSnd.accept = "audio/*"; fSnd.hidden = true;
+      fSnd.addEventListener("change", function(e){
+        var f = e.target.files[0]; if(!f) return;
+        audio();
+        if(!ac){ l2.textContent = "no audio support"; return; }
+        l2.textContent = "loading…";
+        var fr = new FileReader();
+        fr.onload = function(){
+          ac.decodeAudioData(fr.result,
+            function(buf){ slots[n-1].buf = buf; slots[n-1].sndName = f.name; buildSlots(); },
+            function(){ l2.textContent = "could not read that audio"; });
+        };
+        fr.readAsArrayBuffer(f);
+      });
+      bSnd.appendChild(fSnd);
+
+      acts.appendChild(bImg); acts.appendChild(bSnd);
+
+      /* this level's own odds of making a sound */
+      var crow = document.createElement("div");
+      crow.className = "crow";
+      var clab = document.createElement("span");
+      clab.textContent = "odds";
+      var cin = document.createElement("input");
+      cin.type = "range"; cin.min = 0; cin.max = 100; cin.id = "chance" + n;
+      cin.value = Math.round(slotChance(n)*100);
+      var cval = document.createElement("b");
+      cval.textContent = cin.value + "%";
+      cin.addEventListener("input", function(){
+        slots[n-1].chance = +cin.value/100;
+        slots[n-1].custom = true;
+        cval.textContent = cin.value + "%";
+      });
+      crow.appendChild(clab); crow.appendChild(cin); crow.appendChild(cval);
+
+      /* this level's size, as a tweak on top of the 25% ladder */
+      var srow = document.createElement("div");
+      srow.className = "crow";
+      var slab = document.createElement("span");
+      slab.textContent = "size";
+      var sin = document.createElement("input");
+      sin.type = "range"; sin.min = 40; sin.max = 250; sin.id = "mul" + n;
+      sin.value = Math.round(slots[n-1].mul*100);
+      var sval = document.createElement("b");
+      sval.textContent = sin.value + "%";
+      sin.addEventListener("input", function(){
+        slots[n-1].mul = +sin.value/100;
+        sval.textContent = sin.value + "%";
+        for(var bi=0; bi<balls.length; bi++){        /* resize what is already in play */
+          if(balls[bi].n === n) balls[bi].r = tierRadius(n);
+        }
+      });
+      srow.appendChild(slab); srow.appendChild(sin); srow.appendChild(sval);
+
+      row.appendChild(pv); row.appendChild(meta); row.appendChild(acts);
+      row.appendChild(crow); row.appendChild(srow);
+      box.appendChild(row);
+    })(n);
+  }
+}
+$("resetodds").addEventListener("click", function(){
+  for(var n=0;n<MAXTOP;n++){ slots[n].custom = false; }
+  buildSlots();
+});
+$("resetsizes").addEventListener("click", function(){
+  for(var n=0;n<MAXTOP;n++){ slots[n].mul = 1; }
+  buildSlots();
+  for(var bi=0; bi<balls.length; bi++) balls[bi].r = tierRadius(balls[bi].n);
+});
+$("clearall").addEventListener("click", function(){
+  for(var n=0;n<MAXTOP;n++){
+    slots[n].spr = null; slots[n].img = null; slots[n].sprName = "";
+    slots[n].buf = null; slots[n].sndName = "";
+  }
+  if(ac) cutPatateVoice(ac.currentTime);
+  buildSlots();
+});
+
+/* ---------- controls ---------- */
+function bindRange(id, fmt, set){
+  var el = $(id), out = $(id + "v");
+  function sync(){ var v = +el.value; set(v); out.textContent = fmt(v); }
+  el.addEventListener("input", sync);
+  sync();
+}
+bindRange("grav",   function(v){ return (v/100).toFixed(2); }, function(v){ C.grav = v/100; });
+bindRange("bounce", function(v){ return (v/100).toFixed(2); }, function(v){ C.rest = v/100; });
+bindRange("size",   function(v){ return v; },                  function(v){ C.size = v; });
+bindRange("tramp",  function(v){ return (v/10).toFixed(1); },  function(v){ C.tramp = v/10; });
+bindRange("duck",   function(v){ return v + "%"; },            function(v){ C.duck = v/100; });
+bindRange("spin",   function(v){ return (v/100).toFixed(2); }, function(v){ C.spin = v/100; });
+bindRange("gap",    function(v){ return v + "°"; },       function(v){ C.gap = v; });
+bindRange("maxb",   function(v){ return v; },                  function(v){ C.max = v; });
+bindRange("rate",   function(v){ return (v/10).toFixed(1); },  function(v){ C.rate = v/10; });
+bindRange("start",  function(v){ return v; },                  function(v){ C.start = v; });
+bindRange("vol",    function(v){ return v + "%"; },            function(v){ C.vol = v/100; if(master) master.gain.value = C.vol; });
+bindRange("bvol",   function(v){ return v + "%"; },            function(v){ C.bvol = v/100; if(bounceBus) bounceBus.gain.value = C.bvol; });
+
+function bindChip(id, set){
+  var el = $(id), chip = el.closest(".chip");
+  el.addEventListener("change", function(){
+    set(el.checked);
+    chip.classList.toggle("on", el.checked);
+  });
+}
+bindChip("spawn", function(v){ C.spawn = v; });
+bindChip("trail", function(v){ C.trail = v; if(!v) balls.forEach(function(b){ b.tr.length = 0; }); });
+bindChip("merge", function(v){ C.merge = v; });
+bindChip("pop7",  function(v){ C.pop7 = v; });
+bindChip("nums",  function(v){ C.nums = v; });
+bindChip("chute", function(v){ C.chute = v; });
+bindChip("thin",  function(v){ C.thin = v; });
+bindChip("parts", function(v){ C.parts = v; if(!v) parts = []; });
+bindChip("circle", function(v){ C.circle = v; recropAll(); });
+
+$("levels").addEventListener("input", function(e){
+  TOP = +e.target.value;
+  $("levelsv").textContent = TOP;
+  $("poplbl").textContent = TOP;
+  buildSlots();     /* rows appear or disappear; the files you already picked are kept */
+  reset();
+});
+
+$("badge").addEventListener("input", function(e){ C.badge = e.target.value; });
+$("caption").addEventListener("input", function(e){ C.caption = e.target.value; });
+$("scorelabel").addEventListener("input", function(e){ C.label = e.target.value; });
+$("sndmode").addEventListener("change", function(e){ C.mode = e.target.value; melodyStep = 0; });
+
+function togglePlay(){
+  running = !running;
+  $("play").textContent = running ? "Pause" : "Start";
+  if(running) audio();
+}
+$("play").addEventListener("click", togglePlay);
+$("reset").addEventListener("click", function(){ reset(); });
+$("rec").addEventListener("click", function(){ if(recorder) stopRec(); else startRec(); });
+$("shape").addEventListener("click", function(){
+  if(cv.height > cv.width){
+    cv.width = 900; cv.height = 900;
+    $("shape").textContent = "Portrait 9:16";
+  } else {
+    cv.width = 720; cv.height = 1280;
+    $("shape").textContent = "Square 1:1";
+  }
+  reset();
+});
+
+/* bounce-sound uploads */
+$("snds").addEventListener("change", function(e){
+  audio();
+  if(!ac) return;
+  var files = Array.prototype.slice.call(e.target.files);
+  files.forEach(function(f){
+    var fr = new FileReader();
+    fr.onload = function(){
+      ac.decodeAudioData(fr.result,
+        function(buf){ buffers.push(buf); bufNames.push({n:f.name, ok:true}); paintSounds(); },
+        function(){ bufNames.push({n:f.name, ok:false}); paintSounds(); });
+    };
+    fr.readAsArrayBuffer(f);
+  });
+  e.target.value = "";
+});
+$("clearsnds").addEventListener("click", function(){
+  buffers = []; bufNames = []; $("snds").value = ""; paintSounds();
+});
+function paintSounds(){
+  var ul = $("sndlist"); ul.textContent = "";
+  bufNames.forEach(function(e){
+    var li = document.createElement("li");
+    li.style.cssText = "font-size:12px;color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:6px 9px;display:flex;justify-content:space-between;gap:8px";
+    var s = document.createElement("span");
+    s.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0";
+    s.textContent = e.n;
+    var t = document.createElement("em");
+    t.style.fontStyle = "normal";
+    t.style.color = e.ok ? "var(--ok)" : "var(--ink-dim)";
+    t.textContent = e.ok ? "ready" : "can’t read";
+    li.appendChild(s); li.appendChild(t);
+    ul.appendChild(li);
+  });
+}
+
+buildSlots();
+reset();
+})();
+</script>
+</body>
+</html>

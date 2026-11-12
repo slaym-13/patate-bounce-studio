@@ -1,0 +1,9 @@
+# editor / OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# recorded clips
+*.webm
+*.mp4
